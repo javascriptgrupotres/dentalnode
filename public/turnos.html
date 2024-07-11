@@ -1,0 +1,236 @@
+<!-- START public/turnos.html -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turnos</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Sistema de Gestión de Citas Médicas</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="profesionales.html">Gestionar Profesionales</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pacientes.html">Gestionar Pacientes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="tratamientos.html">Gestionar Tratamientos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="turnos.html">Gestionar Turnos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-danger text-white" href="/logout">Cerrar Sesión</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+
+
+
+    <div class="container">
+        <h1>Listado de Turnos</h1>
+        <table id="turnos-table" class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Paciente</th>
+                    <th>Profesional</th>
+                    <th>Tratamiento</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <form id="turno-form">
+            <input type="hidden" id="turno-id">
+            <div class="form-group">
+                <label for="fecha">Fecha</label>
+                <input type="date" id="fecha" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="hora">Hora</label>
+                <input type="time" id="hora" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="paciente">Paciente</label>
+                <select id="paciente" class="form-control" required></select>
+            </div>
+            <div class="form-group">
+                <label for="profesional">Profesional</label>
+                <select id="profesional" class="form-control" required></select>
+            </div>
+            <div class="form-group">
+                <label for="tratamiento">Tratamiento</label>
+                <select id="tratamiento" class="form-control" required></select>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            fetchTurnos();
+            fetchPacientes();
+            fetchProfesionales();
+            fetchTratamientos();
+
+            document.getElementById('turno-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const id = document.getElementById('turno-id').value;
+                const fecha = document.getElementById('fecha').value;
+                const hora = document.getElementById('hora').value;
+                const paciente_id = document.getElementById('paciente').value;
+                const profesional_id = document.getElementById('profesional').value;
+                const tratamiento_id = document.getElementById('tratamiento').value;
+
+                if (id) {
+                    // Actualizar turno
+                    fetch(`/api/turnos/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fecha, hora, paciente_id, profesional_id, tratamiento_id })
+                    }).then(response => response.json())
+                      .then(data => {
+                          alert(data.message);
+                          fetchTurnos();
+                          document.getElementById('turno-form').reset();
+                          document.getElementById('turno-id').value = ''; // Limpiar el campo ID
+                      });
+                } else {
+                    // Crear nuevo turno
+                    fetch('/api/turnos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fecha, hora, paciente_id, profesional_id, tratamiento_id })
+                    }).then(response => response.json())
+                      .then(data => {
+                          alert(data.message);
+                          fetchTurnos();
+                          document.getElementById('turno-form').reset();
+                      });
+                }
+            });
+        });
+
+        function fetchTurnos() {
+            fetch('/api/turnos')
+                .then(response => response.json())
+                .then(turnos => {
+                    const tableBody = document.querySelector('#turnos-table tbody');
+                    tableBody.innerHTML = '';
+                    turnos.forEach(turno => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${turno.id}</td>
+                            <td>${formatDate(turno.fecha)}</td>
+                            <td>${turno.hora}</td>
+                            <td>${turno.paciente_nombre}</td>
+                            <td>${turno.profesional_nombre}</td>
+                            <td>${turno.tratamiento_nombre || '-'}</td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editTurno(${turno.id})">Editar</button>
+                                <button class="btn btn-danger" onclick="deleteTurno(${turno.id})">Eliminar</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                });
+        }
+
+        function fetchPacientes() {
+            fetch('/api/pacientes')
+                .then(response => response.json())
+                .then(pacientes => {
+                    const pacienteSelect = document.getElementById('paciente');
+                    pacienteSelect.innerHTML = '';
+                    pacientes.forEach(paciente => {
+                        const option = document.createElement('option');
+                        option.value = paciente.id;
+                        option.textContent = paciente.nombre;
+                        pacienteSelect.appendChild(option);
+                    });
+                });
+        }
+
+        function fetchProfesionales() {
+            fetch('/api/profesionales')
+                .then(response => response.json())
+                .then(profesionales => {
+                    const profesionalSelect = document.getElementById('profesional');
+                    profesionalSelect.innerHTML = '';
+                    profesionales.forEach(profesional => {
+                        const option = document.createElement('option');
+                        option.value = profesional.id;
+                        option.textContent = profesional.nombre;
+                        profesionalSelect.appendChild(option);
+                    });
+                });
+        }
+
+        function fetchTratamientos() {
+            fetch('/api/tratamientos')
+                .then(response => response.json())
+                .then(tratamientos => {
+                    const tratamientoSelect = document.getElementById('tratamiento');
+                    tratamientoSelect.innerHTML = '';
+                    tratamientos.forEach(tratamiento => {
+                        const option = document.createElement('option');
+                        option.value = tratamiento.id;
+                        option.textContent = tratamiento.nombre;
+                        tratamientoSelect.appendChild(option);
+                    });
+                });
+        }
+
+        function editTurno(id) {
+            fetch(`/api/turnos/${id}`)
+                .then(response => response.json())
+                .then(turno => {
+                    document.getElementById('turno-id').value = turno.id;
+                    document.getElementById('fecha').value = turno.fecha.split('T')[0]; // Mostrar solo la fecha
+                    document.getElementById('hora').value = turno.hora;
+                    document.getElementById('paciente').value = turno.paciente_id;
+                    document.getElementById('profesional').value = turno.profesional_id;
+                    document.getElementById('tratamiento').value = turno.tratamiento_id;
+                });
+        }
+
+        function deleteTurno(id) {
+            if (confirm('¿Estás seguro de eliminar este turno?')) {
+                fetch(`/api/turnos/${id}`, {
+                    method: 'DELETE'
+                }).then(response => response.json())
+                  .then(data => {
+                      alert(data.message);
+                      fetchTurnos();
+                  });
+            }
+        }
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-AR', options);
+        }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
+</html>
+
+<!-- END public/turnos.html -->

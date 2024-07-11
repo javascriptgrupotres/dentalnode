@@ -1,0 +1,174 @@
+<!-- START public/profesionales.html -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profesionales</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Sistema de Gestión de Citas Médicas</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="profesionales.html">Gestionar Profesionales</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pacientes.html">Gestionar Pacientes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="tratamientos.html">Gestionar Tratamientos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="turnos.html">Gestionar Turnos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-danger text-white" href="/logout">Cerrar Sesión</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+
+
+
+    <div class="container">
+        <h1>Listado de Profesionales</h1>
+        <table id="profesionales-table" class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Edad</th>
+                    <th>Teléfono</th>
+                    <th>Dirección</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <form id="profesional-form">
+            <input type="hidden" id="profesional-id">
+            <div class="form-group">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="edad">Edad</label>
+                <input type="number" id="edad" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono</label>
+                <input type="text" id="telefono" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" id="direccion" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            fetchProfesionales();
+
+            document.getElementById('profesional-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const id = document.getElementById('profesional-id').value;
+                const nombre = document.getElementById('nombre').value;
+                const edad = document.getElementById('edad').value;
+                const telefono = document.getElementById('telefono').value;
+                const direccion = document.getElementById('direccion').value;
+
+                if (id) {
+                    // Actualizar profesional
+                    fetch(`/api/profesionales/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nombre, edad, telefono, direccion })
+                    }).then(response => response.json())
+                      .then(data => {
+                          alert(data.message);
+                          fetchProfesionales();
+                          document.getElementById('profesional-form').reset();
+                      });
+                } else {
+                    // Crear nuevo profesional
+                    fetch('/api/profesionales', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nombre, edad, telefono, direccion })
+                    }).then(response => response.json())
+                      .then(data => {
+                          alert(data.message);
+                          fetchProfesionales();
+                          document.getElementById('profesional-form').reset();
+                      });
+                }
+            });
+        });
+
+        function fetchProfesionales() {
+            fetch('/api/profesionales')
+                .then(response => response.json())
+                .then(profesionales => {
+                    const tableBody = document.querySelector('#profesionales-table tbody');
+                    tableBody.innerHTML = '';
+                    profesionales.forEach(profesional => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${profesional.id}</td>
+                            <td>${profesional.nombre}</td>
+                            <td>${profesional.edad}</td>
+                            <td>${profesional.telefono}</td>
+                            <td>${profesional.direccion}</td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editProfesional(${profesional.id})">Editar</button>
+                                <button class="btn btn-danger" onclick="deleteProfesional(${profesional.id})">Eliminar</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                });
+        }
+
+        function editProfesional(id) {
+            fetch(`/api/profesionales/${id}`)
+                .then(response => response.json())
+                .then(profesional => {
+                    document.getElementById('profesional-id').value = profesional.id;
+                    document.getElementById('nombre').value = profesional.nombre;
+                    document.getElementById('edad').value = profesional.edad;
+                    document.getElementById('telefono').value = profesional.telefono;
+                    document.getElementById('direccion').value = profesional.direccion;
+                });
+        }
+
+        function deleteProfesional(id) {
+            if (confirm('¿Estás seguro de eliminar este profesional?')) {
+                fetch(`/api/profesionales/${id}`, {
+                    method: 'DELETE'
+                }).then(response => response.json())
+                  .then(data => {
+                      alert(data.message);
+                      fetchProfesionales();
+                  });
+            }
+        }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
+</html>
+
+<!-- END public/profesionales.html -->
